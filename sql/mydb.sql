@@ -20,8 +20,8 @@ SET time_zone = "+00:00";
 --
 -- Banco de dados: `mydb`
 --
-
--- --------------------------------------------------------
+CREATE DATABASE IF NOT EXISTS mydb;
+----------------------------------------------------------
 
 --
 -- Estrutura para tabela `posts`

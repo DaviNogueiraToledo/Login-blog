@@ -8,7 +8,7 @@ const app = express();
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'phpmyadmin',
-    password: '123456789',
+    password: 'aluno.senai',
     database: 'mydb',
 });
 
@@ -45,8 +45,8 @@ app.set('view engine', 'ejs');
 // A lógica ddo processamento de cada rota deve ser realizada aqui
 app.get('/', (req, res) => {
     // Passe a variável 'req' para o template e use-a nas páginas para renderizar partes do HTML conforme determinada condição
-    // Por exemplo de o usuário estive logado, veja este exemplo no arquivo views/partials/header.ejs
-    res.render('pages/index', { req: req });
+    // Por exemplo de o usuário estive logado, veja este exemplo no arquivo views/partials/header.ejsw
+    res.redirect('/posts');
     // Caso haja necessidade coloque pontos de verificação para verificar pontos da sua logica de negócios
     console.log(`${req.session.username ? `Usuário ${req.session.username} logado no IP ${req.connection.remoteAddress}` : 'Usuário não logado.'}  `);
     //console.log(req.connection)
@@ -61,8 +61,43 @@ app.get('/login', (req, res) => {
 
 
 app.get('/about', (req, res) => {
-    res.render('pages/about', { req: req })
+    res.render('pages/about', { req: req});
 });
+
+app.get('/posts', (req, res) => {
+    const query = 'SELECT * FROM posts';
+
+    db.query(query, [], (err, results) => {
+        if (err) throw err;
+
+        // Contador de posts
+        const numeroDePosts = results.length;
+
+        console.log(numeroDePosts)
+        // Renderiza a página com os resultados e o contador
+        res.render('pages/pgposts', { req: req, posts: results });
+    });
+});
+
+
+app.get('/excluir/Todos', (req, res) => {
+    
+    const query = 'DELETE FROM posts';
+   
+    db.query(query, [], (err, results) => {
+        if (err) throw err;
+
+        if (results.affectedRows > 0) {
+            res.redirect('/');
+        } else {
+            // res.send('Credenciais incorretas. <a href="/">Tente novamente</a>');
+            res.redirect('/login_failed');
+        }
+    });
+
+
+});
+
 
 // Rota para processar o formulário de login
 app.post('/login', (req, res) => {
@@ -87,14 +122,17 @@ app.post('/login', (req, res) => {
 // Rota para processar o formulário de caastro depostagem
 app.post('/cadastrar_posts', (req, res) => {
     const { titulo, conteudo } = req.body;
+    const autor = req.session.username;
+    const datapostagem = new Date();
 
     // const query = 'SELECT * FROM users WHERE username = ? AND password = SHA1(?)';
-    const query = 'INSERT INTO posts (titulo, conteudo) VALUES (?,?)';
+    const query = 'INSERT INTO posts (titulo, conteudo, autor, datapostagem) VALUES (?, ?, ?, ?)';
 
-    db.query(query, [titulo, conteudo], (err, results) => {
+    db.query(query, [titulo, conteudo, autor, datapostagem], (err, results) => {
         if (err) throw err;
+        console.log(`Rotina cadastrar post: ${JSON.stringify(results)}`);
 
-        if (results.length > 0) {
+        if (results.affectedRows > 0) {
             console.log('Cadastro de postagem OK')
             res.redirect('/dashboard');
         } else {
@@ -125,7 +163,11 @@ app.post('/cadastrar_posts', (req, res) => {
 // Rota para a página cadastro do post
 app.get('/cadastrar_posts', (req, res) => {
     // Quando for renderizar páginas pelo EJS, passe parametros para ele em forma de JSON
-    res.render('pages/cadastrar_posts', { req: req });
+    if (req.session.loggedin) {
+        res.render('pages/cadastrar_posts', { req: req });
+    }else {
+        res.redirect('/login_failed')
+    }
 });
 
 // Rotas para cadastrar
